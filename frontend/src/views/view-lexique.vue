@@ -3,7 +3,7 @@
     <div class="header page-header">
       <h2>Lexique</h2>
       <div class="search">
-        <input type="text" placeholder="Rechercher un mot..." v-model="searchQuery" />
+        <input v-model="searchQuery" type="text" placeholder="Rechercher un mot..." />
       </div>
     </div>
 

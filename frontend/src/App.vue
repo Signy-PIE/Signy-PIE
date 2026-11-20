@@ -4,12 +4,12 @@
     <div class="content">
       <RouterView />
     </div>
-    <Menu />
+    <ViewMenu />
     <InstallBanner />
   </div>
 </template>
 <script setup lang="ts">
-import Menu from "./views/menu.vue"
+import ViewMenu from "./views/view-menu.vue"
 import InstallBanner from "./components/installBanner.vue"
 </script>
 <style scoped>

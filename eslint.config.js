@@ -1,36 +1,42 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
-import vuePlugin from 'eslint-plugin-vue';
-import vueParser from 'vue-eslint-parser';
+import js from "@eslint/js"
+import globals from "globals"
+import tseslint from "typescript-eslint"
+import vuePlugin from "eslint-plugin-vue"
+import vueParser from "vue-eslint-parser"
+import prettier from "eslint-config-prettier"
 
 export default [
   {
-    ignores: ['**/dist/**', '**/build/**', '**/coverage/**', '**/node_modules/**'],
+    ignores: [
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      "**/.venv/**",
+      "frontend/public/mediapipe/**",
+    ],
   },
 
   js.configs.recommended,
 
   ...tseslint.configs.recommended,
 
-  ...vuePlugin.configs['flat/recommended'],
+  ...vuePlugin.configs["flat/recommended"],
 
-  // Typescript
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
     },
   },
 
-  // Vue SFC
   {
-    files: ['**/*.vue'],
+    files: ["**/*.vue"],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
         parser: tseslint.parser,
-        extraFileExtensions: ['.vue'],
+        extraFileExtensions: [".vue"],
       },
       globals: {
         ...globals.browser,
@@ -38,9 +44,8 @@ export default [
     },
   },
 
-  // Frontend
   {
-    files: ['frontend/**/*.{js,ts,tsx,vue}'],
+    files: ["frontend/**/*.{js,ts,tsx,vue}"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -48,9 +53,8 @@ export default [
     },
   },
 
-  // Backend
   {
-    files: ['backend/**/*.{js,ts}'],
+    files: ["backend/**/*.{js,ts}", "frontend/vite.config.ts", "eslint.config.js"],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -59,9 +63,10 @@ export default [
   },
 
   {
-    files: ['**/*.{js,mjs,cjs,ts,tsx,vue}'],
+    files: ["**/*.{js,mjs,cjs,ts,tsx,vue}"],
     rules: {
-      'no-console': 'warn',
+      "no-console": "warn",
     },
   },
-];
+  prettier,
+]

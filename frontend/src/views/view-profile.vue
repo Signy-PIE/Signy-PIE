@@ -41,12 +41,12 @@
         <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
         <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
         <div class="buttons">
-          <BigButton type="primary" id="submit-button" @click="handleSubmit">
+          <BigButton id="submit-button" type="primary" @click="handleSubmit">
             Créer mon compte
           </BigButton>
           <BigButton
-            type="secondary"
             id="login-button"
+            type="secondary"
             @click="console.log('Navigating to login page...')"
           >
             J'ai déjà un compte
