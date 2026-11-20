@@ -5,3 +5,5 @@ build
 
 frontend/dist
 backend/dist
+.venv
+frontend/public/mediapipe

@@ -78,17 +78,24 @@ Sans `DATABASE_URL`, le backend utilise SQLite (`backend/signy.db`). Les tables 
 ## Lancer le frontend en local
 
 ```sh
-cd frontend
 npm install
-npm run dev
+npm run dev --workspace frontend
 # Disponible sur http://localhost:5173
 ```
+
+L'installation se fait à la racine. ESLint et Prettier y sont centralisés, avec un seul `package-lock.json`.
 
 ---
 
 ## Commandes utiles
 
 ```bash
+# Qualité du code (depuis la racine)
+npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+
 # Frontend
 cd frontend
 npm run dev       # Dev avec hot-reload
