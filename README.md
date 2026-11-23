@@ -23,7 +23,7 @@ Le frontend appelle le backend sur `http://localhost:8000`.
 
 ## Prérequis
 
-- Node.js 20+ et npm.
+- Node.js 22.18+ (branche 22) ou 24.11+ et npm. Node.js 24 LTS à jour est recommandé.
 - Python 3.12+.
 - Docker et Docker Compose (recommandé).
 
@@ -78,17 +78,36 @@ Sans `DATABASE_URL`, le backend utilise SQLite (`backend/signy.db`). Les tables 
 ## Lancer le frontend en local
 
 ```sh
-cd frontend
 npm install
-npm run dev
+npm run dev --workspace frontend
 # Disponible sur http://localhost:5173
 ```
+
+L'installation se fait à la racine. ESLint et Prettier y sont centralisés, avec un seul `package-lock.json`.
+
+Les outils JavaScript disposent de dépendances natives pour Linux, Windows et macOS. Le fichier `.npmrc` active leur installation et le verrouillage inclut leurs variantes par plateforme. Chaque machine doit installer ses propres dépendances ; ne partage pas le dossier `node_modules` entre systèmes ou avec WSL.
+
+Si Rolldown signale un binaire manquant sous Windows, récupère le `package-lock.json` à jour, puis lance ces commandes dans PowerShell, depuis la racine :
+
+```powershell
+Remove-Item -Recurse -Force node_modules, frontend/node_modules -ErrorAction SilentlyContinue
+npm ci --include=optional
+npm run dev --workspace frontend
+```
+
+Conserve le fichier `package-lock.json` réparé.
 
 ---
 
 ## Commandes utiles
 
 ```bash
+# Qualité du code (depuis la racine)
+npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+
 # Frontend
 cd frontend
 npm run dev       # Dev avec hot-reload

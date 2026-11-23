@@ -1,4 +1,4 @@
-import type { Lesson, LessonWithWords } from "@/types/lesson"
+import type { LessonWithWords } from "@/types/lesson"
 import type { AIWordResponse, Word } from "@/types/word"
 
 class API {
@@ -44,10 +44,7 @@ class API {
     return `${this.baseUrl}${video}`
   }
 
-  async tryWord(
-    video: FormData,
-    expectedWord: string,
-  ): Promise<AIWordResponse> {
+  async tryWord(video: FormData, expectedWord: string): Promise<AIWordResponse> {
     if (!video.has("expected_word")) {
       video.append("expected_word", expectedWord)
     }
