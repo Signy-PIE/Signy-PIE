@@ -7,7 +7,6 @@ Signy PIE est une application pédagogique pour apprendre la langue des signes f
 L'application propose :
 
 - des leçons interactives pour progresser étape par étape,
-- une vidéo de démonstration LSF pour chaque mot,
 - un enregistrement vidéo in-app pour s'exercer,
 - une route IA qui analyse les keypoints MediaPipe et renvoie une prédiction,
 - une validation automatique avec feedback (Bravo / Réessayez).
@@ -73,7 +72,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Sans `DATABASE_URL`, le backend utilise SQLite (`backend/signy.db`). Les tables et données de seed sont créées automatiquement au démarrage.
+Sans `DATABASE_URL`, le backend utilise SQLite (`backend/signy.db`). Les tables sont créées automatiquement au démarrage, sans ajout de données.
 
 ## Lancer le frontend en local
 
@@ -153,7 +152,7 @@ Base URL : `http://localhost:8000`
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | `GET` | `/lessons` | Liste toutes les leçons |
-| `GET` | `/lessons/{lesson_id}` | Détail d'une leçon (avec mots et vidéos) |
+| `GET` | `/lessons/{lesson_id}` | Détail d'une leçon avec ses mots |
 
 #### Words
 
@@ -161,13 +160,6 @@ Base URL : `http://localhost:8000`
 |---------|-------|-------------|
 | `GET` | `/words` | Liste tous les mots |
 | `GET` | `/words/{word_id}` | Détail d'un mot |
-
-#### Videos
-
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| `GET` | `/videos` | Liste toutes les vidéos |
-| `GET` | `/videos/{video_id}` | Détail d'une vidéo |
 
 #### Word Correspondance
 
@@ -181,16 +173,28 @@ Base URL : `http://localhost:8000`
 
 | Méthode | Route | Description |
 |---------|-------|-------------|
-| `POST` | `/ai/interrogate` | Analyse un fichier `.npy` (keypoints MediaPipe) et valide le signe |
+| `GET` | `/health` | Vérifie le chargement du modèle et de ses métadonnées |
+| `POST` | `/ai/interrogate` | Prétraite les points MediaPipe, prédit le signe et compare au mot attendu |
 
-**Paramètres `POST /ai/interrogate` :**
+Le front envoie le JSON suivant uniquement après validation de la vidéo :
 
-| Paramètre | Type | Description |
-|-----------|------|-------------|
-| `video` | `file` | Fichier `.npy` MediaPipe Holistic (shape `[T, 444]`) ou blob vidéo |
-| `expected_word` | `string` (form) | Mot attendu dans la leçon (ex. `Bonjour`) ; le backend le résout vers son label canonique |
+| Champ | Type | Description |
+|-------|------|-------------|
+| `points` | `number[T][96][3]` | Coordonnées brutes `x, y, z` des mains, de la pose et du visage |
+| `valid` | `boolean[T][96]` | Présence de chaque point |
+| `fps` | `number` | Cadence réelle de capture, positive et finie |
+| `expected_word` | `string` | Mot attendu, par exemple `Bonjour` |
 
-Le backend recherche le mot dans `word_corespondance` avant de valider la prédiction. Ainsi, `Bonjour` et `Merci` sont tous deux associés au label modèle `bonjour-merci`, qui est comparé au label prédit.
+La capture contient entre 5 et 1800 images. Aucune vidéo n'est envoyée au serveur.
+Le backend applique le prétraitement NumPy, exécute ONNX puis renvoie la réponse ci-dessous.
+Les accents et la casse sont ignorés pour comparer les labels ; Bonjour et Merci restent
+**deux classes distinctes**, indépendamment des anciennes correspondances en base.
+
+- `422` : données invalides, mains absentes, épaules inutilisables ou mot non appris.
+- `503` : modèle indisponible ou échec de l'inférence.
+
+Les erreurs métier sont renvoyées sous la forme `{"detail": "message"}`.
+Le front abandonne l'attente après 30 secondes ; cela n'interrompt pas un calcul déjà démarré sur le serveur.
 
 **Réponse 200 :**
 ```json
@@ -202,7 +206,7 @@ Le backend recherche le mot dans `word_corespondance` avant de valider la prédi
   "matched_words": ["Âge"],
   "is_valid": true,
   "tested_word": "Âge",
-  "message": "Bravo ! Le signe pour 'Âge' a été reconnu avec succès !"
+  "message": "Le signe reconnu correspond à 'Âge'."
 }
 ```
 
@@ -210,78 +214,39 @@ Le backend recherche le mot dans `word_corespondance` avant de valider la prédi
 
 ## Modèle IA
 
-- **Fichier** : `backend/P4-SC4L.onnx`
-- **Métadonnées** : `backend/model_meta.json`
-- **Input** : keypoints MediaPipe Holistic, shape `[T, 444]`, rééchantillonnés à 60 frames
-- **Output** : logits sur 6 classes → softmax → label prédit
+- **Modèle** : `backend/assets/modele_tcn.onnx`
+- **Métadonnées** : `backend/assets/metadata.json` : ordre des 78 classes, statistiques et version du prétraitement
+- **Prétraitement** : `backend/services/preprocessing.py`, avec NumPy uniquement
+- **Entrée ONNX** : `float32 (1, 90, 350)` : 175 caractéristiques géométriques et 175 masques d'observation
+- **Sortie** : 78 logits, transformés en scores par softmax
 
-**Classes du modèle** (ordre important, aligné avec les IDs en base) :
+Le modèle et les métadonnées sont chargés au premier appel puis conservés en mémoire.
+`AI_MODEL_PATH` et `AI_METADATA_PATH` permettent de préciser leurs chemins.
+Un chargement impossible renvoie une erreur ; aucune prédiction factice n'est produite.
 
-| Index | Label modèle | Mot(s) | ID Word |
-|-------|-------------|--------|---------|
-| 0 | `age` | Âge | 1 |
-| 1 | `bonjour-merci` | Bonjour, Merci | 2, 7 |
-| 2 | `coiffeur` | Coiffeur | 3 |
-| 3 | `habiter` | Habiter | 4 |
-| 4 | `non` | Non | 5 |
-| 5 | `prenom` | Prénom | 6 |
+La table historique `word_corespondance` reste consultable,
+mais elle n'intervient plus dans la validation IA.
+Le modèle choisit parmi les signes appris ; son score ne mesure pas la qualité du geste.
 
-La table `word_corespondance` fait le lien entre les labels prédits par le modèle et les mots de la base. Bonjour et Merci partagent le même signe et le label canonique `bonjour-merci`. Lors de l'analyse, le frontend transmet le mot de la leçon dans `expected_word` ; le backend résout ce mot vers son label canonique pour vérifier la prédiction.
+Pour tester les routes avec une base en mémoire et le vrai modèle, depuis `backend/` :
+
+```sh
+pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+La page locale `/test-capture/`, ignorée par Git, permet également de saisir un mot,
+enregistrer une vidéo, revoir l'aperçu puis envoyer les points avec « Utiliser cette vidéo ».
 
 ---
 
-## Données de seed
+## Base de données
 
-Au démarrage, si la base est vide ou désalignée, elle est automatiquement peuplée avec :
+Le démarrage crée les tables sans insérer de données. Les données existantes sont conservées.
+La migration retire l’ancienne colonne `words.video_id` et la table `videos`, en conservant
+les mots et leurs associations aux leçons.
 
-**Vidéos :**
-
-| ID | Fichier |
-|----|---------|
-| 1 | `/videos/age.mp4` |
-| 2 | `/videos/bonjour.mp4` |
-| 3 | `/videos/coiffeur.mp4` |
-| 4 | `/videos/habiter.mp4` |
-| 5 | `/videos/non.mp4` |
-| 6 | `/videos/prenom.mp4` |
-
-**Mots :**
-
-| ID | Mot | Vidéo ID |
-|----|-----|----------|
-| 1 | Âge | 1 |
-| 2 | Bonjour | 2 |
-| 3 | Coiffeur | 3 |
-| 4 | Habiter | 4 |
-| 5 | Non | 5 |
-| 6 | Prénom | 6 |
-| 7 | Merci | 2 *(même signe que Bonjour)* |
-
-**Leçons :**
-
-| ID | Titre | Mots |
-|----|-------|------|
-| 1 | Les salutations | Bonjour, Merci |
-| 2 | Les bases | Habiter, Non |
-| 3 | Les expressions utiles | Âge, Prénom |
-
-**Word Correspondance :**
-
-| ID | Label | Words (IDs) |
-|----|-------|-------------|
-| 1 | `age` | [1] |
-| 2 | `bonjour-merci` | [2, 7] |
-| 3 | `coiffeur` | [3] |
-| 4 | `habiter` | [4] |
-| 5 | `non` | [5] |
-| 6 | `prenom` | [6] |
-
-**Utilisateurs de test :**
-
-| Nom | Email | Premium | Leçons complétées |
-|-----|-------|---------|-------------------|
-| Alice Dupont | `alice@example.com` | ✅ | Les salutations |
-| Bob Martin | `bob@example.com` | ❌ | aucune |
+Les mots renvoyés par l’API contiennent uniquement `id` et `string`.
 
 ---
 
@@ -292,16 +257,16 @@ Signy-PIE/
 ├── docker-compose.yml          # PostgreSQL + Backend + pgAdmin
 ├── package.json                # Monorepo root
 ├── backend/
-│   ├── main.py                 # Application FastAPI, routes, seed
-│   ├── models.py               # Modèles SQLAlchemy
-│   ├── schemas.py              # Schémas Pydantic
-│   ├── database.py             # Connexion DB (SQLite / PostgreSQL)
-│   ├── ai_service.py           # Chargement ONNX et prédiction
-│   ├── P4-SC4L.onnx            # Modèle entraîné
-│   ├── model_meta.json         # Métadonnées du modèle (classes, dims)
+│   ├── main.py                 # Application FastAPI et branchement des routes
+│   ├── routes/                 # Santé, utilisateurs, leçons, mots, correspondances, IA
+│   ├── services/               # Prétraitement, prédiction ONNX, recherche de correspondances
+│   ├── db/                     # Connexion, modèles SQLAlchemy et migration
+│   ├── schemas/                # Schémas Pydantic des requêtes et réponses
+│   ├── utils/                  # Normalisation des libellés et sérialisation
+│   ├── assets/                 # modele_tcn.onnx et metadata.json
+│   ├── tests/                  # Tests API, modèle et migration
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   └── videos/                 # Vidéos de démonstration LSF
+│   └── Dockerfile
 └── frontend/
     ├── src/
     │   ├── views/              # Pages : home, lexique, profile
@@ -321,7 +286,7 @@ Signy-PIE/
 |--------|------------|
 | Frontend | Vue 3, Vite, TypeScript |
 | Backend | FastAPI, SQLAlchemy, Pydantic |
-| IA | ONNX Runtime, MediaPipe Holistic |
+| IA | ONNX Runtime (backend), MediaPipe pose/mains/visage (frontend) |
 | Base de données | PostgreSQL (prod) / SQLite (dev) |
 | DevOps | Docker, Docker Compose |
 | Admin DB | pgAdmin 4 |

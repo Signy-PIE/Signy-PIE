@@ -1,20 +1,14 @@
 <template>
   <div class="word-block">
     <div class="word-title">{{ word.string }}</div>
-    <VideoCard :video-src="videoSrc" />
   </div>
 </template>
 <script setup lang="ts">
-import { computed } from "vue"
-import VideoCard from "./cards/videoCard.vue"
-import { ApiClass } from "@/api/api"
 import type { Word } from "@/types/word"
 
-const props = defineProps<{
+defineProps<{
   word: Word
 }>()
-
-const videoSrc = computed(() => ApiClass.getVideoUrl(props.word.video))
 </script>
 <style scoped>
 .word-block {
