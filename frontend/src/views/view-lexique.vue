@@ -62,8 +62,8 @@ const groupedWords = computed(() => {
 async function fetchAllWords() {
   try {
     words.value = await ApiClass.getWords()
-  } catch (error) {
-    console.error("Error fetching words:", error)
+  } catch {
+    words.value = []
   }
 }
 

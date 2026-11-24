@@ -1,11 +1,11 @@
 import os
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+from config import BACKEND_DIR
 
-BACKEND_DIR = Path(__file__).resolve().parents[1]
+
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BACKEND_DIR / 'signy.db'}")
 
 engine_kwargs: dict = {}

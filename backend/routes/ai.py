@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-
 from db.connection import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from schemas.ai import AIPointsRequest, AIWordResponse
 from services.interrogation import interrogate
-
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

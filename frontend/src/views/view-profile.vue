@@ -44,11 +44,7 @@
           <BigButton id="submit-button" type="primary" @click="handleSubmit">
             Créer mon compte
           </BigButton>
-          <BigButton
-            id="login-button"
-            type="secondary"
-            @click="console.log('Navigating to login page...')"
-          >
+          <BigButton id="login-button" type="secondary">
             J'ai déjà un compte
           </BigButton>
         </div>

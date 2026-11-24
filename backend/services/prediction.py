@@ -5,9 +5,10 @@ import os
 
 import numpy as np
 
+from config import BACKEND_DIR
 from services.preprocessing import charger_metadata, pretraiter_points
 
-BASE = Path(__file__).resolve().parents[1] / "assets"
+BASE = BACKEND_DIR / "assets"
 
 
 @dataclass

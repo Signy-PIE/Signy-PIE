@@ -206,7 +206,6 @@ def main():
         np.save(sortie, entree, allow_pickle=False)
     except (ValueError, OSError, RuntimeError, KeyError, TypeError) as error:
         parser.exit(1, f"Prétraitement impossible : {error}\n")
-    print(f"Entrée sauvegardée : {sortie} · {entree.shape} · {entree.dtype}")
 
 
 if __name__ == "__main__":

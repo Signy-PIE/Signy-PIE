@@ -111,8 +111,7 @@ async function loadLesson() {
     lesson.value = await ApiClass.getLessonById(id)
     currentWordIndex.value = 0
     lessonStep.value = "ready"
-  } catch (error) {
-    console.error("Error fetching lesson details:", error)
+  } catch {
     await router.push({ name: "home" })
   }
 }

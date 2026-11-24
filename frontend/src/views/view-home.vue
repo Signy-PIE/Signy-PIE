@@ -66,8 +66,8 @@ function startLesson(lessonId: number) {
 async function fetchLessons() {
   try {
     fetchedLessons.value = await ApiClass.getLessons()
-  } catch (error) {
-    console.error("Error fetching lessons:", error)
+  } catch {
+    fetchedLessons.value = []
   }
 }
 
