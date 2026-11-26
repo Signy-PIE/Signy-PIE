@@ -1,9 +1,89 @@
+# ─── Node / Frontend ───────────────────────────────────────────────────────────
 node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+.eslintcache
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Tests / couverture
+coverage/
+__screenshots__/
+/cypress/videos/
+/cypress/screenshots/
+
+# Vite artefacts temporaires
+*.timestamp-*.mjs
+
+# ─── Python / Backend ──────────────────────────────────────────────────────────
 __pycache__/
-*.db
-*.sqlite3
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+
+# Environnements virtuels
 .venv/
+venv/
+env/
+ENV/
+
+# Outils Python
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.prof
+
+# ─── Bases de données locales ──────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Secrets & variables d'environnement ──────────────────────────────────────
 backend/.env
 backend/.env.*
 !backend/.env.example
-backend/tests/*
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ─── Éditeurs & IDE ────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# ─── Système d'exploitation ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Docker ────────────────────────────────────────────────────────────────────
+# (docker-compose.yml est versionné, pas les overrides locaux)
+docker-compose.override.yml
+
+# ─── Modèles ML lourds (optionnel — décommentez si vous les gérez ailleurs) ───
+# backend/assets/*.onnx
