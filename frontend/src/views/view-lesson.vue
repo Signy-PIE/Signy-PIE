@@ -26,7 +26,7 @@
         </div>
 
         <div class="lesson-copy">
-          <p class="focus-label">Découvre le signe :</p>
+          <p class="focus-label">Signe le mot :</p>
           <h1 class="word-title">{{ currentWord?.string }}</h1>
         </div>
       </div>
@@ -34,33 +34,37 @@
       <VideoBlock
         v-if="currentWord"
         ref="videoBlockRef"
-        :key="`${currentWord.id}-${videoReplayKey}`"
-        :video-src="currentWordVideoSrc"
+        :key="`${currentWord.id}-${captureKey}`"
         :word="currentWord"
         :show-title="false"
         :show-success="lessonStep === 'success'"
         @validation-success="handleValidationSuccess"
         @success-continue="continueAfterSuccess"
+        @recording-error="lessonStep = 'camera-ready'"
+        @recording-ready="lessonStep = 'review'"
       />
 
       <div
         v-if="lessonStep !== 'success'"
         class="lesson-actions"
-        :class="{ 'single-action': lessonStep === 'preview' }"
+        :class="{ 'single-action': lessonStep !== 'review' }"
       >
-        <template v-if="lessonStep === 'preview'">
+        <template v-if="lessonStep === 'ready'">
           <BigButton type="primary" @click="activateCameraStep">A moi de jouer</BigButton>
         </template>
         <template v-else-if="lessonStep === 'camera-ready'">
-          <BigButton type="secondary" @click="replayCurrentWord">Revoir la vidéo</BigButton>
           <BigButton type="primary" @click="startRecordingStep"
             >Démarrer l'enregistrement</BigButton
           >
         </template>
-        <template v-else>
-          <BigButton type="secondary" @click="replayCurrentWord">Revoir la vidéo</BigButton>
+        <template v-else-if="lessonStep === 'recording'">
           <BigButton type="primary" @click="stopRecordingStep">Arrêter l'enregistrement</BigButton>
         </template>
+        <template v-else-if="lessonStep === 'review'">
+          <BigButton type="secondary" @click="startRecordingStep">Recommencer</BigButton>
+          <BigButton type="primary" @click="confirmRecordingStep">Utiliser cette vidéo</BigButton>
+        </template>
+        <p v-else-if="lessonStep === 'stopping'">Préparation de l'aperçu…</p>
       </div>
     </main>
   </div>
@@ -79,21 +83,21 @@ const router = useRouter()
 
 const lesson = ref<LessonWithWords | null>(null)
 const currentWordIndex = ref(0)
-const videoReplayKey = ref(0)
-const lessonStep = ref<"preview" | "camera-ready" | "recording" | "success">("preview")
+const captureKey = ref(0)
+const lessonStep = ref<
+  "ready" | "camera-ready" | "recording" | "stopping" | "review" | "checking" | "success"
+>("ready")
 const videoBlockRef = ref<{
   activateCamera: () => Promise<boolean>
   stopCamera: () => void
   cancelRecording: () => void
-  startRecording: () => void
+  startRecording: () => boolean
   stopRecording: () => void
+  confirmRecording: () => Promise<void>
 } | null>(null)
 
 const lessonId = computed(() => Number(route.params.lessonId ?? 0))
 const currentWord = computed(() => lesson.value?.words[currentWordIndex.value] ?? null)
-const currentWordVideoSrc = computed(() =>
-  currentWord.value ? ApiClass.getVideoUrl(currentWord.value.video) : "",
-)
 
 async function loadLesson() {
   const id = lessonId.value
@@ -106,9 +110,8 @@ async function loadLesson() {
   try {
     lesson.value = await ApiClass.getLessonById(id)
     currentWordIndex.value = 0
-    lessonStep.value = "preview"
-  } catch (error) {
-    console.error("Error fetching lesson details:", error)
+    lessonStep.value = "ready"
+  } catch {
     await router.push({ name: "home" })
   }
 }
@@ -121,22 +124,28 @@ async function activateCameraStep() {
   }
 }
 
-function replayCurrentWord() {
-  lessonStep.value = "preview"
+function resetCapture() {
+  lessonStep.value = "ready"
   videoBlockRef.value?.stopCamera()
-  videoReplayKey.value += 1
+  captureKey.value += 1
 }
 
 function startRecordingStep() {
   if (!videoBlockRef.value) return
-  lessonStep.value = "recording"
-  videoBlockRef.value.startRecording()
+  if (videoBlockRef.value.startRecording()) lessonStep.value = "recording"
 }
 
 function stopRecordingStep() {
   if (!videoBlockRef.value) return
-  lessonStep.value = "camera-ready"
+  lessonStep.value = "stopping"
   videoBlockRef.value.stopRecording()
+}
+
+async function confirmRecordingStep() {
+  if (!videoBlockRef.value) return
+  lessonStep.value = "checking"
+  await videoBlockRef.value.confirmRecording()
+  if (lessonStep.value === "checking") lessonStep.value = "review"
 }
 
 function handleValidationSuccess() {
@@ -152,11 +161,11 @@ function continueAfterSuccess() {
   }
 
   currentWordIndex.value += 1
-  replayCurrentWord()
+  resetCapture()
 }
 
 function closeLesson() {
-  replayCurrentWord()
+  resetCapture()
   void router.push({ name: "home" })
 }
 

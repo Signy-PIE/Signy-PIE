@@ -1,5 +1,6 @@
 import type { LessonWithWords } from "@/types/lesson"
 import type { AIWordResponse, Word } from "@/types/word"
+import type { LandmarkCapture } from "@/types/landmarks"
 
 class API {
   readonly baseUrl: string
@@ -40,21 +41,24 @@ class API {
     return response.json()
   }
 
-  getVideoUrl(video: string): string {
-    return `${this.baseUrl}${video}`
-  }
-
-  async tryWord(video: FormData, expectedWord: string): Promise<AIWordResponse> {
-    if (!video.has("expected_word")) {
-      video.append("expected_word", expectedWord)
-    }
-
+  async tryWord(
+    capture: LandmarkCapture,
+    expectedWord: string,
+    signal?: AbortSignal,
+  ): Promise<AIWordResponse> {
     const response = await fetch(`${this.baseUrl}/ai/interrogate`, {
       method: "POST",
-      body: video,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...capture, expected_word: expectedWord }),
+      signal,
     })
     if (!response.ok) {
-      throw new Error(`Failed to try word: ${response.statusText}`)
+      const error = await response.json().catch(() => null)
+      throw new Error(
+        typeof error?.detail === "string"
+          ? error.detail
+          : "Impossible d'analyser l'enregistrement. Réessayez.",
+      )
     }
     return response.json()
   }

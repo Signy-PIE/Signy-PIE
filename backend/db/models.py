@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Table
 from sqlalchemy.orm import relationship
 
-from database import Base
+from db.connection import Base
 
 
 # ── Association tables ────────────────────────────────────────────────────────
@@ -32,21 +32,12 @@ word_corespondance_words = Table(
 
 # ── Core tables ───────────────────────────────────────────────────────────────
 
-class Video(Base):
-    __tablename__ = "videos"
-
-    id = Column(Integer, primary_key=True, index=True)
-    url = Column(String, nullable=False)
-
-
 class Word(Base):
     __tablename__ = "words"
 
     id = Column(Integer, primary_key=True, index=True)
     string = Column(String, nullable=False)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
 
-    video = relationship("Video")
     lessons = relationship("Lesson", secondary=lesson_words, back_populates="words")
     corespondances = relationship(
         "WordCorespondance",
@@ -80,6 +71,7 @@ class WordCorespondance(Base):
         back_populates="corespondances",
     )
 
+    # Récupère les mots associés à cette correspondance, par relation ou par identifiants.
     def get_words(self, db) -> list[Word]:
         if self.word_items:
             return list(self.word_items)
